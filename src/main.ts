@@ -2,10 +2,8 @@
 // even this tiny example demonstrates a separately deployed asset.
 // @deno-types="./asset-url.d.ts"
 import grassBlockUrl from "./assets/grass-block.png?no-inline";
-import woodenPickaxeUrl from "./assets/wooden-pickaxe.png?no-inline";
-import stonePickaxeUrl from "./assets/stone-pickaxe.png?no-inline";
-import woodenCursorUrl from "./assets/wooden-pickaxe-cursor.png?no-inline";
-import stoneCursorUrl from "./assets/stone-pickaxe-cursor.png?no-inline";
+
+import { pickaxes } from "./pickaxes.ts";
 
 const app = document.querySelector<HTMLElement>("#app")!;
 
@@ -14,9 +12,7 @@ heading.textContent = "Minecraft XP Clicker";
 
 // Player XP and progression
 let xp = 0;
-let xpPerClick = 1;
-let stoneOwned = false;
-const stoneCost = 25;
+let currentPickaxeIndex = 0;
 
 const xpDisplay = document.createElement("p");
 xpDisplay.textContent = `XP: ${xp}`;
@@ -36,48 +32,51 @@ mineButton.append(image);
 
 const clickPowerDisplay = document.createElement("p");
 
-const stoneButton = document.createElement("button");
-stoneButton.type = "button";
+const upgradeButton = document.createElement("button");
+upgradeButton.type = "button";
 
 const pickaxeImage = document.createElement("img");
 pickaxeImage.width = 72;
 pickaxeImage.height = 72;
 
 function updateDisplay() {
+  const currentPickaxe = pickaxes[currentPickaxeIndex]!;
+  const nextPickaxe = pickaxes[currentPickaxeIndex + 1];
+
   xpDisplay.textContent = `XP: ${xp}`;
 
-  const pickaxeName = stoneOwned ? "Stone Pickaxe" : "Wooden Pickaxe";
-
   clickPowerDisplay.textContent =
-    `${pickaxeName} — XP per click: ${xpPerClick}`;
+    `${currentPickaxe.name} — XP per click: ${currentPickaxe.xpPerClick}`;
 
-  pickaxeImage.src = stoneOwned ? stonePickaxeUrl : woodenPickaxeUrl;
-  pickaxeImage.alt = pickaxeName;
+  pickaxeImage.src = currentPickaxe.imageUrl;
+  pickaxeImage.alt = currentPickaxe.name;
 
-  const cursorUrl = stoneOwned ? stoneCursorUrl : woodenCursorUrl;
-  mineButton.style.cursor = `url("${cursorUrl}") 16 16, pointer`;
+  // Pickaxe cursor
+  mineButton.style.cursor = `url("${currentPickaxe.cursorUrl}") 16 16, pointer`;
 
-  stoneButton.disabled = stoneOwned || xp < stoneCost;
+  upgradeButton.disabled = !nextPickaxe || xp < nextPickaxe.cost;
 
-  stoneButton.textContent = stoneOwned
-    ? "Stone Pickaxe Purchased"
-    : `Buy Stone Pickaxe - ${stoneCost} XP`;
+  upgradeButton.textContent = nextPickaxe
+    ? `Buy ${nextPickaxe.name} — ${nextPickaxe.cost} XP`
+    : "All pickaxes purchased";
 }
 
 // Earn XP and update display on button click
 mineButton.addEventListener("click", () => {
-  xp += xpPerClick;
+  const currentPickaxe = pickaxes[currentPickaxeIndex]!;
+  xp += currentPickaxe.xpPerClick;
   updateDisplay();
 });
 
-stoneButton.addEventListener("click", () => {
-  if (stoneOwned || xp < stoneCost) {
+upgradeButton.addEventListener("click", () => {
+  const nextPickaxe = pickaxes[currentPickaxeIndex + 1];
+
+  if (!nextPickaxe || xp < nextPickaxe.cost) {
     return;
   }
 
-  xp -= stoneCost;
-  xpPerClick = 2;
-  stoneOwned = true;
+  xp -= nextPickaxe.cost;
+  currentPickaxeIndex += 1;
 
   updateDisplay();
 });
@@ -88,7 +87,7 @@ app.append(
   mineButton,
   xpDisplay,
   clickPowerDisplay,
-  stoneButton,
+  upgradeButton,
 );
 
 updateDisplay();
