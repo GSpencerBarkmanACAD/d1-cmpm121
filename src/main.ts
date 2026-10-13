@@ -1,20 +1,36 @@
 // Vite turns this import into a production-safe URL. Keep it as a file so
 // even this tiny example demonstrates a separately deployed asset.
 // @deno-types="./asset-url.d.ts"
-import tileUrl from "./assets/tile.svg?no-inline";
+import tileUrl from "./assets/grass-block.png?no-inline";
 
 const app = document.querySelector<HTMLElement>("#app")!;
 
 const heading = document.createElement("h1");
-heading.textContent = "D1 project";
+heading.textContent = "Minecraft XP Clicker";
+
+// Player XP
+let xp = 0;
+
+const xpDisplay = document.createElement("p");
+xpDisplay.textContent = `XP: ${xp}`;
+
+// Clickable button
+const mineButton = document.createElement("button");
+mineButton.type = "button";
+mineButton.setAttribute("aria-label", "Mine grass block for XP");
 
 const image = document.createElement("img");
 image.src = tileUrl;
-image.alt = "A teal tile with a cream circle";
-image.width = 96;
-image.height = 96;
+image.alt = "Grass block";
+image.width = 180;
+image.height = 180;
 
-const message = document.createElement("p");
-message.textContent = "Your project starts here.";
+mineButton.append(image);
 
-app.append(heading, image, message);
+// Earn XP and update display on button click
+mineButton.addEventListener("click", () => {
+  xp += 1;
+  xpDisplay.textContent = `XP: ${xp}`;
+});
+
+app.append(heading, mineButton, xpDisplay);
