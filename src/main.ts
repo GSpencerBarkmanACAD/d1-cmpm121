@@ -4,6 +4,11 @@
 import grassBlockUrl from "./assets/grass-block.png?no-inline";
 import { pickaxes } from "./pickaxes.ts";
 import { farms } from "./farms.ts";
+import xpChimeUrl from "./assets/xp_chime.mp3?no-inline";
+import villagerSoundUrl from "./assets/villager.mp3?no-inline";
+import zombieSoundUrl from "./assets/zombie.mp3?no-inline";
+import spiderSoundUrl from "./assets/spider.mp3?no-inline";
+import skeletonSoundUrl from "./assets/skeleton.mp3?no-inline";
 
 const app = document.querySelector<HTMLElement>("#app")!;
 
@@ -49,6 +54,30 @@ upgradeFarmSButton.style.display = "none"; // Initially hidden
 
 //========//
 
+function playSound(url: string) {
+  const sound = new Audio(url);
+  sound.volume = 0.5;
+
+  void sound.play().catch((error) => {
+    console.warn("Could not play sound:", error);
+  });
+}
+
+const mobSoundUrls = [
+  zombieSoundUrl,
+  spiderSoundUrl,
+  skeletonSoundUrl,
+];
+
+let nextMobSoundIndex = 0;
+
+function playNextMobSound() {
+  playSound(mobSoundUrls[nextMobSoundIndex]!);
+  nextMobSoundIndex = (nextMobSoundIndex + 1) % mobSoundUrls.length;
+}
+
+//========//
+
 const pickaxeImage = document.createElement("img");
 pickaxeImage.width = 72;
 pickaxeImage.height = 72;
@@ -65,6 +94,10 @@ function addFarmImage(container: HTMLDivElement, url: string, alt: string) {
   container.appendChild(farmImage);
 }
 
+const productionDisplay = document.createElement("p");
+const farmVStats = document.createElement("p");
+const farmSStats = document.createElement("p");
+
 function updateDisplay() {
   const currentPickaxe = pickaxes[currentPickaxeIndex]!;
   const nextPickaxe = pickaxes[currentPickaxeIndex + 1];
@@ -76,55 +109,75 @@ function updateDisplay() {
   })`;
 
   clickPowerDisplay.textContent =
-    `${currentPickaxe.name} — XP per click: ${currentPickaxe.xpPerClick}`;
+    `${currentPickaxe.name} | XP per click: ${currentPickaxe.xpPerClick}`;
 
-  pickaxeImage.src = currentPickaxe.imageUrl;
-  pickaxeImage.alt = currentPickaxe.name;
+  // Only change the image and cursor when the equipped pickaxe changes.
+  if (pickaxeImage.getAttribute("src") !== currentPickaxe.imageUrl) {
+    pickaxeImage.src = currentPickaxe.imageUrl;
+    pickaxeImage.alt = currentPickaxe.name;
+    mineButton.style.cursor =
+      `url("${currentPickaxe.cursorUrl}") 16 16, pointer`;
+  }
 
-  // Pickaxe cursor
-  mineButton.style.cursor = `url("${currentPickaxe.cursorUrl}") 16 16, pointer`;
-
-  // Ugrade Buttons Functionality and Display
   upgradePickaxeButton.disabled = !nextPickaxe || xp < nextPickaxe.cost;
-
-  upgradeFarmVButton.disabled = xp < farmV.cost;
-  upgradeFarmVButton.style.display = totalXp >= 150 ? "inline-block" : "none";
-
-  upgradeFarmSButton.disabled = xp < farmS.cost;
-  upgradeFarmSButton.style.display = totalXp >= 3000 ? "inline-block" : "none";
-
-  // ===== //
-
-  // Button Display
   upgradePickaxeButton.textContent = nextPickaxe
-    ? `Buy ${nextPickaxe.name} — ${nextPickaxe.cost} XP`
+    ? `Buy ${nextPickaxe.name} - ${nextPickaxe.cost} XP`
     : "All pickaxes purchased";
 
-  upgradeFarmVButton.textContent = `Buy Villager Farm — ${
-    Math.floor(farms[0].cost)
-  } XP`;
+  productionDisplay.textContent =
+    `Automatic production: ${getXpPerSecond()} XP/sec`;
 
-  upgradeFarmSButton.textContent = `Buy Spawner Farm — ${
-    Math.floor(farms[1].cost)
-  } XP`;
+  const villagerUnlocked = totalXp >= 150;
+  const spawnerUnlocked = totalXp >= 3000;
 
-  // ===== //
+  farmVStats.textContent =
+    `${farmV.name}: ${farmV.quantity} owned | ${farmV.xpPerSecond} XP/sec each`;
+
+  farmSStats.textContent =
+    `${farmS.name}: ${farmS.quantity} owned | ${farmS.xpPerSecond} XP/sec each`;
+
+  upgradeFarmVButton.style.display = "block";
+  upgradeFarmVButton.disabled = !villagerUnlocked || xp < farmV.cost;
+  upgradeFarmVButton.textContent = villagerUnlocked
+    ? `Buy ${farmV.name} | ${farmV.cost} XP`
+    : "Unlocks at 150 lifetime XP";
+
+  upgradeFarmSButton.style.display = "block";
+  upgradeFarmSButton.disabled = !spawnerUnlocked || xp < farmS.cost;
+  upgradeFarmSButton.textContent = spawnerUnlocked
+    ? `Buy ${farmS.name} | ${farmS.cost} XP`
+    : "Unlocks at 3,000 lifetime XP";
 }
+// ===== //
 
 // Automatically earn XP from farms every second
-const TICKS_PER_SECOND = 10;
-setInterval(() => {
-  const farmV = farms[0];
-  const farmS = farms[1];
+function getXpPerSecond() {
+  return farms.reduce(
+    (total, farm) => total + farm.xpPerSecond * farm.quantity,
+    0,
+  );
+}
 
-  const gained =
-    (farmV.xpPerSecond * farmV.quantity + farmS.xpPerSecond * farmS.quantity) /
-    TICKS_PER_SECOND;
+let lastProductionTime = performance.now();
+
+function updateProduction() {
+  const now = performance.now();
+  const elapsedSeconds = (now - lastProductionTime) / 1000;
+  lastProductionTime = now;
+
+  const gained = getXpPerSecond() * elapsedSeconds;
   xp += gained;
   totalXp += gained;
+}
 
+function updateGame() {
+  updateProduction();
   updateDisplay();
-}, 1000 / TICKS_PER_SECOND);
+  requestAnimationFrame(updateGame);
+}
+
+requestAnimationFrame(updateGame);
+
 // ===== //
 
 // Initial display update
@@ -153,52 +206,145 @@ upgradePickaxeButton.addEventListener("click", () => {
 
   xp -= nextPickaxe.cost;
   currentPickaxeIndex += 1;
+  playSound(xpChimeUrl);
 
   updateDisplay();
 });
 
 // Upgrade farm buttons click events
 upgradeFarmVButton.addEventListener("click", () => {
+  updateProduction();
+
   const farmV = farms[0];
-  if (xp < farmV.cost) {
+  if (totalXp < 150 || xp < farmV.cost) {
+    updateDisplay();
     return;
   }
 
-  const currentFarmVCost = farmV.cost;
   xp -= farmV.cost;
   farmV.quantity += 1;
-  farmV.cost += currentFarmVCost * 0.5; // Increase cost by 50% for next purchase
+  playSound(villagerSoundUrl);
+  farmV.cost = Math.ceil(farmV.cost * 1.5);
+
   addFarmImage(farmVContainer, farmV.imageUrl, farmV.name);
   updateDisplay();
 });
 
 upgradeFarmSButton.addEventListener("click", () => {
+  updateProduction();
+
   const farmS = farms[1];
-  if (xp < farmS.cost) {
+  if (totalXp < 3000 || xp < farmS.cost) {
+    updateDisplay();
     return;
   }
 
-  const currentFarmSCost = farmS.cost;
   xp -= farmS.cost;
-  farmS.cost += currentFarmSCost * 0.8; // Increase cost by 80% for next purchase
   farmS.quantity += 1;
+  playNextMobSound();
+  farmS.cost = Math.ceil(farmS.cost * 2);
+
   addFarmImage(farmSContainer, farmS.imageUrl, farmS.name);
   updateDisplay();
 });
 
 // ===== //
 
-app.append(
-  heading,
+// Layout and appearance
+heading.className = "game-title";
+pickaxeImage.className = "equipped-pickaxe";
+pickaxeImage.draggable = false;
+
+mineButton.className = "mine-button";
+image.draggable = false;
+
+xpDisplay.className = "xp-counter";
+productionDisplay.className = "production-counter";
+farmVContainer.className = "farm-icons";
+farmSContainer.className = "farm-icons";
+
+function createPanel(title: string) {
+  const panel = document.createElement("section");
+  panel.className = "panel";
+
+  const panelHeading = document.createElement("h2");
+  panelHeading.textContent = title;
+
+  panel.append(panelHeading);
+  return panel;
+}
+
+// Left: equipped pickaxe and player information
+const pickaxePanel = createPanel("Your pickaxe");
+pickaxePanel.classList.add("pickaxe-panel");
+pickaxePanel.append(
   pickaxeImage,
-  mineButton,
   xpDisplay,
   clickPowerDisplay,
-  farmVContainer,
-  farmSContainer,
   upgradePickaxeButton,
+);
+
+// Center: the main clickable block
+const miningArea = document.createElement("div");
+miningArea.className = "mining-area";
+
+const mineHint = document.createElement("p");
+mineHint.className = "mine-hint";
+mineHint.textContent = "Click the grass block to earn XP";
+
+miningArea.append(mineButton, mineHint);
+
+// Right: farm information and purchases
+const farmGuide = createPanel("Farm Guide");
+farmGuide.classList.add("farm-guide");
+
+const villagerGuide = document.createElement("p");
+villagerGuide.textContent = `${
+  farms[0].name
+}: unlocks at 150 lifetime XP. Each produces ${
+  farms[0].xpPerSecond
+} XP/sec. Prices rise by 50% after each purchase.`;
+
+const spawnerGuide = document.createElement("p");
+spawnerGuide.textContent = `${
+  farms[1].name
+}: unlocks at 3,000 lifetime XP. Each produces ${
+  farms[1].xpPerSecond
+} XP/sec. Prices double after each purchase.`;
+
+const lifetimeHint = document.createElement("p");
+lifetimeHint.textContent = "Spending XP does not reduce your lifetime XP.";
+
+farmGuide.append(villagerGuide, spawnerGuide, lifetimeHint);
+
+const farmShop = createPanel("Your farms");
+
+const villagerCard = document.createElement("div");
+villagerCard.className = "farm-card";
+villagerCard.append(
+  farmVStats,
+  farmVContainer,
   upgradeFarmVButton,
+);
+
+const spawnerCard = document.createElement("div");
+spawnerCard.className = "farm-card";
+spawnerCard.append(
+  farmSStats,
+  farmSContainer,
   upgradeFarmSButton,
 );
 
+farmShop.append(productionDisplay, villagerCard, spawnerCard);
+
+const farmColumn = document.createElement("div");
+farmColumn.className = "farm-column";
+farmColumn.append(farmShop);
+
+// Assemble the three columns
+const gameLayout = document.createElement("div");
+gameLayout.className = "game-layout";
+gameLayout.append(pickaxePanel, miningArea, farmColumn);
+
+app.append(heading, gameLayout, farmGuide);
 updateDisplay();
