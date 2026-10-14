@@ -10,6 +10,7 @@ import villagerSoundUrl from "./assets/villager.mp3?no-inline";
 import zombieSoundUrl from "./assets/zombie.mp3?no-inline";
 import spiderSoundUrl from "./assets/spider.mp3?no-inline";
 import skeletonSoundUrl from "./assets/skeleton.mp3?no-inline";
+import dirtSoundUrl from "./assets/DirtSFX.mp3";
 
 const app = document.querySelector<HTMLElement>("#app")!;
 
@@ -193,6 +194,7 @@ mineButton.addEventListener("click", () => {
   const currentPickaxe = pickaxes[currentPickaxeIndex]!;
   xp += currentPickaxe.xpPerClick;
   totalXp += currentPickaxe.xpPerClick;
+  playSound(dirtSoundUrl);
   updateDisplay();
 });
 
