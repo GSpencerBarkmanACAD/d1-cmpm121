@@ -53,23 +53,23 @@ const pickaxeImage = document.createElement("img");
 pickaxeImage.width = 72;
 pickaxeImage.height = 72;
 
-const FarmVImage = document.createElement("img");
-FarmVImage.src = farms[0].imageUrl;
-FarmVImage.width = 72;
-FarmVImage.height = 72;
-FarmVImage.style.display = "none"; // Initially hidden
+const farmVContainer = document.createElement("div");
+const farmSContainer = document.createElement("div");
 
-const FarmSImage = document.createElement("img");
-FarmSImage.src = farms[1].imageUrl;
-FarmSImage.width = 72;
-FarmSImage.height = 72;
-FarmSImage.style.display = "none"; // Initially hidden
+function addFarmImage(container: HTMLDivElement, url: string, alt: string) {
+  const farmImage = document.createElement("img");
+  farmImage.src = url;
+  farmImage.alt = alt;
+  farmImage.width = 72;
+  farmImage.height = 72;
+  container.appendChild(farmImage);
+}
 
 function updateDisplay() {
   const currentPickaxe = pickaxes[currentPickaxeIndex]!;
   const nextPickaxe = pickaxes[currentPickaxeIndex + 1];
-  const FarmV = farms[0];
-  const FarmS = farms[1];
+  const farmV = farms[0];
+  const farmS = farms[1];
 
   xpDisplay.textContent = `XP: ${Math.floor(xp)} (Total XP: ${
     Math.floor(totalXp)
@@ -84,27 +84,18 @@ function updateDisplay() {
   // Pickaxe cursor
   mineButton.style.cursor = `url("${currentPickaxe.cursorUrl}") 16 16, pointer`;
 
-  // Enable Upgrade Pickaxe button only if there's a next pickaxe and the player has enough XP
+  // Ugrade Buttons Functionality and Display
   upgradePickaxeButton.disabled = !nextPickaxe || xp < nextPickaxe.cost;
 
-  // Enable Upgrade Villager Farm button only if total XP is 150 or more
-  upgradeFarmVButton.disabled = xp < FarmV.cost;
-
-  // Show Upgrade Villager Farm button only if total XP is 150 or more
+  upgradeFarmVButton.disabled = xp < farmV.cost;
   upgradeFarmVButton.style.display = totalXp >= 150 ? "inline-block" : "none";
 
-  // Show the Villager Farm image
-  FarmVImage.style.display = FarmV.quantity > 0 ? "inline-block" : "none";
-
-  // Enable Upgrade Spawner Farm button only if total XP is 3000 or more
-  upgradeFarmSButton.disabled = xp < FarmS.cost;
-
-  // Show Upgrade Spawner Farm button only if total XP is 3000 or more
+  upgradeFarmSButton.disabled = xp < farmS.cost;
   upgradeFarmSButton.style.display = totalXp >= 3000 ? "inline-block" : "none";
 
-  // Show the Spawner Farm image
-  FarmSImage.style.display = FarmS.quantity > 0 ? "inline-block" : "none";
+  // ===== //
 
+  // Button Display
   upgradePickaxeButton.textContent = nextPickaxe
     ? `Buy ${nextPickaxe.name} — ${nextPickaxe.cost} XP`
     : "All pickaxes purchased";
@@ -112,25 +103,29 @@ function updateDisplay() {
   upgradeFarmVButton.textContent = `Buy Villager Farm — ${
     Math.floor(farms[0].cost)
   } XP`;
+
   upgradeFarmSButton.textContent = `Buy Spawner Farm — ${
     Math.floor(farms[1].cost)
   } XP`;
+
+  // ===== //
 }
 
 // Automatically earn XP from farms every second
 const TICKS_PER_SECOND = 10;
 setInterval(() => {
-  const FarmV = farms[0];
-  const FarmS = farms[1];
+  const farmV = farms[0];
+  const farmS = farms[1];
 
   const gained =
-    (FarmV.xpPerSecond * FarmV.quantity + FarmS.xpPerSecond * FarmS.quantity) /
+    (farmV.xpPerSecond * farmV.quantity + farmS.xpPerSecond * farmS.quantity) /
     TICKS_PER_SECOND;
   xp += gained;
   totalXp += gained;
 
   updateDisplay();
 }, 1000 / TICKS_PER_SECOND);
+// ===== //
 
 // Initial display update
 updateDisplay();
@@ -148,6 +143,7 @@ mineButton.addEventListener("click", () => {
   updateDisplay();
 });
 
+// Upgrade pickaxe button click event
 upgradePickaxeButton.addEventListener("click", () => {
   const nextPickaxe = pickaxes[currentPickaxeIndex + 1];
 
@@ -161,31 +157,36 @@ upgradePickaxeButton.addEventListener("click", () => {
   updateDisplay();
 });
 
+// Upgrade farm buttons click events
 upgradeFarmVButton.addEventListener("click", () => {
-  const FarmV = farms[0];
-  if (xp < FarmV.cost) {
+  const farmV = farms[0];
+  if (xp < farmV.cost) {
     return;
   }
 
-  const currentFarmVCost = FarmV.cost;
-  xp -= FarmV.cost;
-  FarmV.quantity += 1;
-  FarmV.cost += currentFarmVCost * 0.5; // Increase cost by 50% for next purchase
+  const currentFarmVCost = farmV.cost;
+  xp -= farmV.cost;
+  farmV.quantity += 1;
+  farmV.cost += currentFarmVCost * 0.5; // Increase cost by 50% for next purchase
+  addFarmImage(farmVContainer, farmV.imageUrl, farmV.name);
   updateDisplay();
 });
 
 upgradeFarmSButton.addEventListener("click", () => {
-  const FarmS = farms[1];
-  if (xp < FarmS.cost) {
+  const farmS = farms[1];
+  if (xp < farmS.cost) {
     return;
   }
 
-  const currentFarmSCost = FarmS.cost;
-  xp -= FarmS.cost;
-  FarmS.cost += currentFarmSCost * 0.8; // Increase cost by 80% for next purchase
-  FarmS.quantity += 1;
+  const currentFarmSCost = farmS.cost;
+  xp -= farmS.cost;
+  farmS.cost += currentFarmSCost * 0.8; // Increase cost by 80% for next purchase
+  farmS.quantity += 1;
+  addFarmImage(farmSContainer, farmS.imageUrl, farmS.name);
   updateDisplay();
 });
+
+// ===== //
 
 app.append(
   heading,
@@ -193,8 +194,8 @@ app.append(
   mineButton,
   xpDisplay,
   clickPowerDisplay,
-  FarmVImage,
-  FarmSImage,
+  farmVContainer,
+  farmSContainer,
   upgradePickaxeButton,
   upgradeFarmVButton,
   upgradeFarmSButton,
