@@ -67,6 +67,23 @@ img {
   font-weight: bold;
 }
 
+.xp-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 20px 0;
+}
+
+.xp-row img {
+  flex-shrink: 0;
+}
+
+.xp-row .xp-counter {
+  margin: 0;
+  padding: 0;
+}
+
 .mining-area {
   padding-top: 48px;
   text-align: center;

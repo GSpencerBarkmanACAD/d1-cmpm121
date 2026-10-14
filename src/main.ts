@@ -2,6 +2,7 @@
 // even this tiny example demonstrates a separately deployed asset.
 // @deno-types="./asset-url.d.ts"
 import grassBlockUrl from "./assets/grass-block.png?no-inline";
+import xpIconUrl from "./assets/xp.png?no-inline";
 import { pickaxes } from "./pickaxes.ts";
 import { farms } from "./farms.ts";
 import xpChimeUrl from "./assets/xp_chime.mp3?no-inline";
@@ -104,9 +105,7 @@ function updateDisplay() {
   const farmV = farms[0];
   const farmS = farms[1];
 
-  xpDisplay.textContent = `XP: ${Math.floor(xp)} (Total XP: ${
-    Math.floor(totalXp)
-  })`;
+  xpDisplay.textContent = `XP: ${Math.floor(xp)}`;
 
   clickPowerDisplay.textContent =
     `${currentPickaxe.name} | XP per click: ${currentPickaxe.xpPerClick}`;
@@ -140,14 +139,15 @@ function updateDisplay() {
   upgradeFarmVButton.disabled = !villagerUnlocked || xp < farmV.cost;
   upgradeFarmVButton.textContent = villagerUnlocked
     ? `Buy ${farmV.name} | ${farmV.cost} XP`
-    : "Unlocks at 150 lifetime XP";
+    : "Locked";
 
   upgradeFarmSButton.style.display = "block";
   upgradeFarmSButton.disabled = !spawnerUnlocked || xp < farmS.cost;
   upgradeFarmSButton.textContent = spawnerUnlocked
     ? `Buy ${farmS.name} | ${farmS.cost} XP`
-    : "Unlocks at 3,000 lifetime XP";
+    : "Locked";
 }
+
 // ===== //
 
 // Automatically earn XP from farms every second
@@ -274,12 +274,24 @@ function createPanel(title: string) {
   return panel;
 }
 
+// XP Bottle
+const xpIcon = document.createElement("img");
+xpIcon.src = xpIconUrl;
+xpIcon.alt = "";
+xpIcon.width = 32;
+xpIcon.height = 32;
+xpIcon.draggable = false;
+
+const xpRow = document.createElement("div");
+xpRow.className = "xp-row";
+xpRow.append(xpIcon, xpDisplay);
+
 // Left: equipped pickaxe and player information
 const pickaxePanel = createPanel("Your pickaxe");
 pickaxePanel.classList.add("pickaxe-panel");
 pickaxePanel.append(
   pickaxeImage,
-  xpDisplay,
+  xpRow,
   clickPowerDisplay,
   upgradePickaxeButton,
 );
